@@ -240,32 +240,35 @@ String runCaptureCycle() {
     doc["error"] = "Erreur capture image";
     stats.errorCount++;
   } else {
-    bool allSuccess = true;
-
-    for (int i = 0; i < cfg.questionsCount; i++) {
-      if (!cfg.questions[i].enabled) continue;
-
-      String response;
-      bool result = AIProvider::sendToAI(base64Image, cfg.questions[i], response);
-
-      if (response.startsWith("HTTP Error") || response.startsWith("JSON Parse") || response.startsWith("WiFi Error")) {
-        allSuccess = false;
-        results[cfg.questions[i].jsonKey] = response;
-      } else {
-        if (cfg.questions[i].type == QUESTION_BOOL) {
-          results[cfg.questions[i].jsonKey] = result;
-        } else {
-          // Extraire le premier nombre entier de la réponse
-          int value = 0;
-          for (int j = 0; j < response.length(); j++) {
-            if (isDigit(response[j])) {
-              value = response.substring(j).toInt();
-              break;
-            }
+    bool allSuccess = false;
+    
+    if (cfg.questionsCount > 0) {
+      DynamicJsonDocument batchResults(4096);
+      if (AIProvider::sendBatchToAI(base64Image, batchResults)) {
+        // Copier les résultats du batch dans l'objet results final
+        // et vérifier si toutes les questions attendues sont là
+        allSuccess = true;
+        for (int i = 0; i < cfg.questionsCount; i++) {
+          if (!cfg.questions[i].enabled) continue;
+          
+          String key = cfg.questions[i].jsonKey;
+          if (batchResults.containsKey(key)) {
+            results[key] = batchResults[key];
+          } else {
+            results[key] = "Missing in AI response";
+            allSuccess = false;
           }
-          results[cfg.questions[i].jsonKey] = value;
+        }
+      } else {
+        // Erreur globale (HTTP ou parsing)
+        for (int i = 0; i < cfg.questionsCount; i++) {
+          if (cfg.questions[i].enabled) {
+            results[cfg.questions[i].jsonKey] = "AI Error";
+          }
         }
       }
+    } else {
+      allSuccess = true; // Pas de questions, donc succès technique
     }
 
     stats.captureCount++;
@@ -274,32 +277,22 @@ String runCaptureCycle() {
     if (allSuccess) {
       stats.successCount++;
       doc["success"] = true;
+      stats.lastResult = "OK";
       MQTTManager::publishResults(results);
     } else {
       stats.errorCount++;
       doc["success"] = false;
+      doc["error"] = "Erreur IA ou réponse incomplète";
+      stats.lastResult = "Erreur";
     }
-
+    
     doc["results"] = results;
-
-    // Construire lastResult
-    stats.lastResult = "";
-    for (JsonPair kv : results.as<JsonObject>()) {
-      if (stats.lastResult.length() > 0) stats.lastResult += ", ";
-      stats.lastResult += String(kv.key().c_str()) + ": ";
-      if (kv.value().is<bool>()) {
-        stats.lastResult += kv.value().as<bool>() ? "true" : "false";
-      } else if (kv.value().is<int>()) {
-        stats.lastResult += String(kv.value().as<int>());
-      } else {
-        stats.lastResult += kv.value().as<String>();
-      }
-    }
   }
-
+  
+  stats.captureInProgress = false;
+  
   String json;
   serializeJson(doc, json);
-  stats.captureInProgress = false;
   return json;
 }
 

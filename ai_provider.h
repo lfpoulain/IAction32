@@ -11,6 +11,7 @@
 
 namespace AIProvider {
   bool sendToAI(const String& base64Image, const Question& question, String& response);
+  bool sendBatchToAI(const String& base64Image, DynamicJsonDocument& results);
   String fetchModels(int providerOverride = -1, const String& hostOverride = "");
 }
 
