@@ -6,203 +6,25 @@
 #include "wifi_manager.h"
 #include <HTTPClient.h>
 
-// ========== HELPER: BUILD PROMPT WITH AUTO-INSTRUCTIONS ==========
-static String buildPromptWithInstructions(const Question& question) {
-  String fullPrompt = question.prompt;
-  
-  // Ajouter les instructions automatiques selon le type
-  if (question.type == QUESTION_BOOL) {
-    // Vérifier si l'instruction n'est pas déjà présente
-    String lowerPrompt = fullPrompt;
-    lowerPrompt.toLowerCase();
-    if (lowerPrompt.indexOf("true") == -1 && lowerPrompt.indexOf("false") == -1) {
-      fullPrompt += " Answer only with 'true' or 'false', nothing else.";
-    }
-  } else if (question.type == QUESTION_DECIMAL) {
-    String lowerPrompt = fullPrompt;
-    lowerPrompt.toLowerCase();
-    if (lowerPrompt.indexOf("number") == -1 && lowerPrompt.indexOf("count") == -1) {
-      fullPrompt += " Answer only with a whole number (integer like 0, 1, 2, 3...), nothing else.";
+// ========== HELPER: ESCAPE JSON STRING ==========
+static String escapeJson(const String& input) {
+  String output;
+  output.reserve(input.length() + 20);
+  for (unsigned int i = 0; i < input.length(); i++) {
+    char c = input[i];
+    switch (c) {
+      case '"':  output += "\\\""; break;
+      case '\\': output += "\\\\"; break;
+      case '\n': output += "\\n"; break;
+      case '\r': output += "\\r"; break;
+      case '\t': output += "\\t"; break;
+      default:   output += c; break;
     }
   }
-  
-  return fullPrompt;
+  return output;
 }
 
-// ========== LM STUDIO ==========
-static bool sendToLMStudio(const String& base64Image, const Question& question, String& response) {
-  HTTPClient http;
-  String url = cfg.lm_host + "/v1/chat/completions";
-
-  http.begin(url);
-  http.addHeader("Content-Type", "application/json");
-  http.setTimeout(120000);
-
-  String imageDataUrl = "data:image/jpeg;base64," + base64Image;
-  String fullPrompt = buildPromptWithInstructions(question);
-
-  String payload = "{";
-  payload += "\"model\":\"" + cfg.lm_model + "\",";
-  payload += "\"messages\":[{";
-  payload += "\"role\":\"user\",";
-  payload += "\"content\":[";
-  payload += "{\"type\":\"text\",\"text\":\"" + fullPrompt + "\"},";
-  payload += "{\"type\":\"image_url\",\"image_url\":{\"url\":\"" + imageDataUrl + "\"}}";
-  payload += "]}],";
-  payload += "\"max_tokens\":50,";
-  payload += "\"temperature\":0.1,";
-  payload += "\"stream\":false";
-  payload += "}";
-
-  int httpCode = http.POST(payload);
-
-  if (httpCode != HTTP_CODE_OK) {
-    response = "HTTP Error: " + String(httpCode);
-    http.end();
-    return false;
-  }
-
-  String httpResponse = http.getString();
-  http.end();
-
-  DynamicJsonDocument doc(4096);
-  if (deserializeJson(doc, httpResponse)) {
-    response = "JSON Parse Error";
-    return false;
-  }
-
-  response = doc["choices"][0]["message"]["content"].as<String>();
-  response.trim();
-
-  if (question.type == QUESTION_BOOL) {
-    String lowerResponse = response;
-    lowerResponse.toLowerCase();
-    return lowerResponse.indexOf("true") >= 0;
-  }
-
-  return true;
-}
-
-// ========== OLLAMA ==========
-static bool sendToOllama(const String& base64Image, const Question& question, String& response) {
-  HTTPClient http;
-  String url = cfg.lm_host + "/api/generate";
-
-  http.begin(url);
-  http.addHeader("Content-Type", "application/json");
-  http.setTimeout(120000);
-
-  String fullPrompt = buildPromptWithInstructions(question);
-
-  String payload = "{";
-  payload += "\"model\":\"" + cfg.lm_model + "\",";
-  payload += "\"prompt\":\"" + fullPrompt + "\",";
-  payload += "\"images\":[\"" + base64Image + "\"],";
-  payload += "\"stream\":false";
-  payload += "}";
-
-  int httpCode = http.POST(payload);
-
-  if (httpCode != HTTP_CODE_OK) {
-    response = "HTTP Error: " + String(httpCode);
-    http.end();
-    return false;
-  }
-
-  String httpResponse = http.getString();
-  http.end();
-
-  DynamicJsonDocument doc(4096);
-  if (deserializeJson(doc, httpResponse)) {
-    response = "JSON Parse Error";
-    return false;
-  }
-
-  response = doc["response"].as<String>();
-  response.trim();
-
-  if (question.type == QUESTION_BOOL) {
-    String lowerResponse = response;
-    lowerResponse.toLowerCase();
-    return lowerResponse.indexOf("true") >= 0;
-  }
-
-  return true;
-}
-
-// ========== OPENAI ==========
-static bool sendToOpenAI(const String& base64Image, const Question& question, String& response) {
-  HTTPClient http;
-  String url = "https://api.openai.com/v1/chat/completions";
-
-  http.begin(url);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("Authorization", "Bearer " + cfg.openai_key);
-  http.setTimeout(120000);
-
-  String imageDataUrl = "data:image/jpeg;base64," + base64Image;
-  String fullPrompt = buildPromptWithInstructions(question);
-
-  String payload = "{";
-  payload += "\"model\":\"" + cfg.lm_model + "\",";
-  payload += "\"messages\":[{";
-  payload += "\"role\":\"user\",";
-  payload += "\"content\":[";
-  payload += "{\"type\":\"text\",\"text\":\"" + fullPrompt + "\"},";
-  payload += "{\"type\":\"image_url\",\"image_url\":{\"url\":\"" + imageDataUrl + "\"}}";
-  payload += "]}],";
-  payload += "\"max_tokens\":50";
-  payload += "}";
-
-  int httpCode = http.POST(payload);
-
-  if (httpCode != HTTP_CODE_OK) {
-    response = "HTTP Error: " + String(httpCode);
-    http.end();
-    return false;
-  }
-
-  String httpResponse = http.getString();
-  http.end();
-
-  DynamicJsonDocument doc(4096);
-  if (deserializeJson(doc, httpResponse)) {
-    response = "JSON Parse Error";
-    return false;
-  }
-
-  response = doc["choices"][0]["message"]["content"].as<String>();
-  response.trim();
-
-  if (question.type == QUESTION_BOOL) {
-    String lowerResponse = response;
-    lowerResponse.toLowerCase();
-    return lowerResponse.indexOf("true") >= 0;
-  }
-
-  return true;
-}
-
-// ========== INTERFACE PUBLIQUE ==========
-bool AIProvider::sendToAI(const String& base64Image, const Question& question, String& response) {
-  if (!WiFiManager::isConnected()) {
-    response = "WiFi Error";
-    return false;
-  }
-
-  switch (cfg.provider) {
-    case PROVIDER_LMSTUDIO:
-      return sendToLMStudio(base64Image, question, response);
-    case PROVIDER_OLLAMA:
-      return sendToOllama(base64Image, question, response);
-    case PROVIDER_OPENAI:
-      return sendToOpenAI(base64Image, question, response);
-    default:
-      response = "Unknown Provider";
-      return false;
-  }
-}
-
+// ========== BATCH AI REQUEST ==========
 bool AIProvider::sendBatchToAI(const String& base64Image, DynamicJsonDocument& results) {
   if (!WiFiManager::isConnected()) return false;
 
@@ -256,7 +78,7 @@ bool AIProvider::sendBatchToAI(const String& base64Image, DynamicJsonDocument& r
     payload += "\"messages\":[{";
     payload += "\"role\":\"user\",";
     payload += "\"content\":[";
-    payload += "{\"type\":\"text\",\"text\":\"" + prompt + "\"},";
+    payload += "{\"type\":\"text\",\"text\":\"" + escapeJson(prompt) + "\"},";
     payload += "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + base64Image + "\"}}";
     payload += "]}]}";
 
@@ -281,7 +103,7 @@ bool AIProvider::sendBatchToAI(const String& base64Image, DynamicJsonDocument& r
     // Pour Ollama, on construit le JSON manuellement pour éviter la duplication mémoire de l'image
     String payload = "{";
     payload += "\"model\":\"" + cfg.lm_model + "\",";
-    payload += "\"prompt\":\"" + prompt + "\",";
+    payload += "\"prompt\":\"" + escapeJson(prompt) + "\",";
     payload += "\"images\":[\"" + base64Image + "\"],";
     payload += "\"stream\":false,";
     payload += "\"format\":\"json\""; // Ollama supporte le mode JSON natif
@@ -389,5 +211,3 @@ String AIProvider::fetchModels(int providerOverride, const String& hostOverride)
 
   return result;
 }
-
-// Fonction supprimée - Utiliser MQTT à la place

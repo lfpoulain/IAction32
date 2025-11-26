@@ -60,7 +60,6 @@
 #define DEFAULT_WIFI_PASSWORD  "YourWiFiPassword"
 #define DEFAULT_LM_HOST        "http://192.168.1.100:1234"
 #define DEFAULT_LM_MODEL       "qwen2.5-vl-7b-instruct"
-#define DEFAULT_OPENAI_MODEL   "gpt-4.1-nano"
 #define DEFAULT_PROMPT         "Is there a person visible in this image?"
 #define DEFAULT_MQTT_SERVER    "192.168.1.100"
 #define DEFAULT_MQTT_PORT      1883
@@ -140,10 +139,8 @@ struct AppConfig {
 
 struct AppStats {
   int captureCount;
-  int successCount;
   int errorCount;
   String lastResult;
-  String lastResponse;
   unsigned long lastCaptureTimestamp;
   bool captureInProgress;
 };

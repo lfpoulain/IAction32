@@ -275,7 +275,6 @@ String runCaptureCycle() {
     stats.lastCaptureTimestamp = millis();
 
     if (allSuccess) {
-      stats.successCount++;
       doc["success"] = true;
       stats.lastResult = "OK";
       MQTTManager::publishResults(results);
