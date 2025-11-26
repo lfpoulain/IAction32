@@ -41,16 +41,28 @@ void handleCapture() {
   esp_camera_fb_return(fb);
 }
 
-// ========== HANDLER: SAVE CONFIG ==========
-void handleSave() {
+// ========== HANDLER: SAVE WIFI ==========
+void handleSaveWifi() {
   if (server.hasArg("wifi_ssid")) cfg.wifi_ssid = server.arg("wifi_ssid");
   if (server.hasArg("wifi_pass")) cfg.wifi_password = server.arg("wifi_pass");
+  Storage::save();
+  server.sendHeader("Location", "/#config");
+  server.send(302, "text/plain", "WiFi saved");
+}
+
+// ========== HANDLER: SAVE AI ==========
+void handleSaveAI() {
   if (server.hasArg("lm_host")) cfg.lm_host = server.arg("lm_host");
   if (server.hasArg("lm_model")) cfg.lm_model = server.arg("lm_model");
   if (server.hasArg("openai_key")) cfg.openai_key = server.arg("openai_key");
   if (server.hasArg("provider")) cfg.provider = (AIProviderType)server.arg("provider").toInt();
+  Storage::save();
+  server.sendHeader("Location", "/#config");
+  server.send(302, "text/plain", "AI saved");
+}
 
-  // MQTT
+// ========== HANDLER: SAVE MQTT ==========
+void handleSaveMQTT() {
   if (server.hasArg("mqtt_server")) cfg.mqtt_server = server.arg("mqtt_server");
   if (server.hasArg("mqtt_port")) cfg.mqtt_port = server.arg("mqtt_port").toInt();
   if (server.hasArg("mqtt_user")) cfg.mqtt_user = server.arg("mqtt_user");
@@ -58,7 +70,7 @@ void handleSave() {
   if (server.hasArg("mqtt_topic")) cfg.mqtt_topic = server.arg("mqtt_topic");
   if (server.hasArg("device_name")) cfg.device_name = server.arg("device_name");
   cfg.mqtt_enabled = server.hasArg("mqtt_enabled");
-
+  
   Storage::save();
 
   // Reconnecter MQTT si nécessaire
@@ -68,8 +80,8 @@ void handleSave() {
     MQTTManager::connect();
   }
 
-  server.sendHeader("Location", "/?saved=1");
-  server.send(302, "text/plain", "Saved");
+  server.sendHeader("Location", "/#config");
+  server.send(302, "text/plain", "MQTT saved");
 }
 
 // ========== HANDLER: SAVE CAMERA ==========
@@ -401,7 +413,9 @@ void WebServerManager::init() {
 
   server.on("/", handleRoot);
   server.on("/capture", handleCapture);
-  server.on("/save", HTTP_POST, handleSave);
+  server.on("/save_wifi", HTTP_POST, handleSaveWifi);
+  server.on("/save_ai", HTTP_POST, handleSaveAI);
+  server.on("/save_mqtt", HTTP_POST, handleSaveMQTT);
   server.on("/save_camera", HTTP_POST, handleSaveCamera);
   server.on("/save_question", HTTP_POST, handleSaveQuestion);
   server.on("/add_question", handleAddQuestion);

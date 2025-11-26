@@ -115,7 +115,7 @@ String buildConfigPage() {
   html += "<div class='card-title'><div class='card-icon'>📡</div> Configuration WiFi</div>";
   html += "</div>";
 
-  html += "<form action='/save' method='POST'>";
+  html += "<form action='/save_wifi' method='POST'>";
 
   html += "<div class='form-group'>";
   html += "<label class='form-label'>SSID WiFi</label>";
@@ -142,7 +142,7 @@ String buildConfigPage() {
   html += "<div class='card-title'><div class='card-icon'>🤖</div> Configuration IA</div>";
   html += "</div>";
 
-  html += "<form action='/save' method='POST'>";
+  html += "<form action='/save_ai' method='POST'>";
 
   html += "<div class='form-group'>";
   html += "<label class='form-label'>Provider IA</label>";
@@ -221,7 +221,7 @@ String buildConfigPage() {
   html += "💡 <strong>MQTT Auto-Discovery:</strong> Les capteurs seront automatiquement détectés par Home Assistant via MQTT Discovery.";
   html += "</div>";
 
-  html += "<form action='/save' method='POST'>";
+  html += "<form action='/save_mqtt' method='POST'>";
 
   html += "<div class='toggle-group'>";
   html += "<span style='font-weight:600;'>Activer MQTT</span>";
