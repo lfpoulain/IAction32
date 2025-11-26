@@ -255,7 +255,7 @@ String AIProvider::fetchModels() {
     http.end();
 
   } else if (cfg.provider == PROVIDER_OPENAI) {
-    // OpenAI - Liste statique des modèles vision (GPT-4.1 uniquement)
+    // OpenAI - Liste statique des modèles vision
     result = "[\"gpt-4.1-nano\",\"gpt-4.1-mini\",\"gpt-4.1\"]";
   }
 

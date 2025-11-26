@@ -654,6 +654,14 @@ const char HTML_FOOT[] PROGMEM = R"rawliteral(
           document.getElementById('stat-last').textContent = d.lastResult;
           document.getElementById('stat-last-update').textContent = d.lastUpdate;
           
+          // WiFi & IP
+          if (document.getElementById('stat-wifi')) {
+            document.getElementById('stat-wifi').textContent = d.wifiConnected ? "✓" : "✗";
+          }
+          if (document.getElementById('stat-ip')) {
+            document.getElementById('stat-ip').textContent = d.ip;
+          }
+          
           // Mettre à jour les variables globales et l'UI
           captureEnabled = d.captureEnabled;
           captureModeLive = d.captureModeLive;
@@ -774,15 +782,28 @@ const char HTML_FOOT[] PROGMEM = R"rawliteral(
     }
 
     // ========== MODELS & NETWORKS ==========
-    function refreshModels() {
-      const btn = document.getElementById('refresh-models-btn');
+    function refreshModels(providerId) {
+      let btnId, selectId;
+      
+      if (providerId === 0) { // LM Studio
+        btnId = 'refresh-btn-lmstudio';
+        selectId = 'model-select-lmstudio';
+      } else if (providerId === 1) { // Ollama
+        btnId = 'refresh-btn-ollama';
+        selectId = 'model-select-ollama';
+      } else {
+        return; // Pas de refresh pour OpenAI (liste statique)
+      }
+      
+      const btn = document.getElementById(btnId);
+      const select = document.getElementById(selectId);
+      
       btn.disabled = true;
       btn.innerHTML = '<span class="loading"></span> Chargement...';
 
       fetch('/api/refresh_models')
         .then(r => r.json())
         .then(d => {
-          let select = document.getElementById('model-select');
           select.innerHTML = '';
           d.models.forEach(m => {
             let opt = document.createElement('option');
@@ -826,10 +847,37 @@ const char HTML_FOOT[] PROGMEM = R"rawliteral(
         });
     }
 
+    function toggleInputs(containerId, enabled) {
+      const container = document.getElementById(containerId);
+      const inputs = container.querySelectorAll('input, select, button');
+      inputs.forEach(input => {
+        if (enabled) input.removeAttribute('disabled');
+        else input.setAttribute('disabled', 'true');
+      });
+    }
+
     function providerChanged(provider) {
-      document.getElementById('lmstudio-config').style.display = provider == '0' ? 'block' : 'none';
-      document.getElementById('ollama-config').style.display = provider == '1' ? 'block' : 'none';
-      document.getElementById('openai-config').style.display = provider == '2' ? 'block' : 'none';
+      // Cacher tout
+      document.getElementById('lmstudio-config').style.display = 'none';
+      document.getElementById('ollama-config').style.display = 'none';
+      document.getElementById('openai-config').style.display = 'none';
+      
+      // Désactiver tous les inputs pour éviter les conflits de noms lors du POST
+      toggleInputs('lmstudio-config', false);
+      toggleInputs('ollama-config', false);
+      toggleInputs('openai-config', false);
+
+      // Afficher et activer le bon
+      if (provider == '0') {
+        document.getElementById('lmstudio-config').style.display = 'block';
+        toggleInputs('lmstudio-config', true);
+      } else if (provider == '1') {
+        document.getElementById('ollama-config').style.display = 'block';
+        toggleInputs('ollama-config', true);
+      } else if (provider == '2') {
+        document.getElementById('openai-config').style.display = 'block';
+        toggleInputs('openai-config', true);
+      }
     }
 
     function setProvider(provider) {
@@ -858,6 +906,12 @@ const char HTML_FOOT[] PROGMEM = R"rawliteral(
     // ========== INIT ==========
     document.addEventListener('DOMContentLoaded', () => {
       refreshStatus();
+      setInterval(refreshStatus, 2000); // Actualiser toutes les 2 secondes
+      
+      // Initialiser l'état des inputs du provider
+      const currentProvider = document.getElementById('provider-input').value;
+      providerChanged(currentProvider);
+      
       // Vérifier s'il y a un hash dans l'URL pour afficher le bon onglet
       const hash = window.location.hash.replace('#', '');
       if (hash && document.getElementById(hash)) {
