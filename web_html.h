@@ -649,15 +649,10 @@ const char HTML_FOOT[] PROGMEM = R"rawliteral(
         .then(r => r.json())
         .then(d => {
           document.getElementById('stat-captures').textContent = d.captures;
-          document.getElementById('stat-success').textContent = d.success;
           document.getElementById('stat-errors').textContent = d.errors;
           document.getElementById('stat-last').textContent = d.lastResult;
-          document.getElementById('stat-last-update').textContent = d.lastUpdate;
           
-          // WiFi & IP
-          if (document.getElementById('stat-wifi')) {
-            document.getElementById('stat-wifi').textContent = d.wifiConnected ? "✓" : "✗";
-          }
+          // IP only
           if (document.getElementById('stat-ip')) {
             document.getElementById('stat-ip').textContent = d.ip;
           }
@@ -783,25 +778,28 @@ const char HTML_FOOT[] PROGMEM = R"rawliteral(
 
     // ========== MODELS & NETWORKS ==========
     function refreshModels(providerId) {
-      let btnId, selectId;
+      let btnId, selectId, hostInputId;
       
       if (providerId === 0) { // LM Studio
         btnId = 'refresh-btn-lmstudio';
         selectId = 'model-select-lmstudio';
+        hostInputId = 'input-lm-host';
       } else if (providerId === 1) { // Ollama
         btnId = 'refresh-btn-ollama';
         selectId = 'model-select-ollama';
+        hostInputId = 'input-ollama-host';
       } else {
         return; // Pas de refresh pour OpenAI (liste statique)
       }
       
       const btn = document.getElementById(btnId);
       const select = document.getElementById(selectId);
+      const host = document.getElementById(hostInputId).value;
       
       btn.disabled = true;
       btn.innerHTML = '<span class="loading"></span> Chargement...';
 
-      fetch('/api/refresh_models')
+      fetch('/api/refresh_models?provider=' + providerId + '&host=' + encodeURIComponent(host))
         .then(r => r.json())
         .then(d => {
           select.innerHTML = '';

@@ -203,16 +203,19 @@ bool AIProvider::sendToAI(const String& base64Image, const Question& question, S
   }
 }
 
-String AIProvider::fetchModels() {
+String AIProvider::fetchModels(int providerOverride, const String& hostOverride) {
   if (!WiFiManager::isConnected()) return "[]";
 
   HTTPClient http;
   String url;
   String result = "[]";
+  
+  int provider = (providerOverride != -1) ? providerOverride : (int)cfg.provider;
+  String host = (hostOverride.length() > 0) ? hostOverride : cfg.lm_host;
 
-  if (cfg.provider == PROVIDER_LMSTUDIO) {
+  if (provider == PROVIDER_LMSTUDIO) {
     // LM Studio
-    url = cfg.lm_host + "/v1/models";
+    url = host + "/v1/models";
     http.begin(url);
     http.setTimeout(10000);
 
@@ -232,9 +235,9 @@ String AIProvider::fetchModels() {
     }
     http.end();
 
-  } else if (cfg.provider == PROVIDER_OLLAMA) {
+  } else if (provider == PROVIDER_OLLAMA) {
     // Ollama
-    url = cfg.lm_host + "/api/tags";
+    url = host + "/api/tags";
     http.begin(url);
     http.setTimeout(10000);
 
@@ -254,7 +257,7 @@ String AIProvider::fetchModels() {
     }
     http.end();
 
-  } else if (cfg.provider == PROVIDER_OPENAI) {
+  } else if (provider == PROVIDER_OPENAI) {
     // OpenAI - Liste statique des modèles vision
     result = "[\"gpt-4.1-nano\",\"gpt-4.1-mini\",\"gpt-4.1\"]";
   }

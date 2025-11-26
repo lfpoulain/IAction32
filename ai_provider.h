@@ -11,7 +11,7 @@
 
 namespace AIProvider {
   bool sendToAI(const String& base64Image, const Question& question, String& response);
-  String fetchModels();
+  String fetchModels(int providerOverride = -1, const String& hostOverride = "");
 }
 
 #endif

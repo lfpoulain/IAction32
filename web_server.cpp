@@ -210,7 +210,6 @@ void handleDeleteQuestion() {
 void handleApiStatus() {
   DynamicJsonDocument doc(512);
   doc["captures"] = stats.captureCount;
-  doc["success"] = stats.successCount;
   doc["errors"] = stats.errorCount;
   doc["lastResult"] = stats.lastResult;
   doc["wifiConnected"] = WiFiManager::isConnected();
@@ -218,22 +217,6 @@ void handleApiStatus() {
   doc["captureEnabled"] = cfg.capture_enabled;
   doc["captureModeLive"] = cfg.capture_mode_live;
   doc["intervalSeconds"] = cfg.interval_seconds;
-  
-  // Timestamp lisible (temps depuis dernière capture)
-  if (stats.lastCaptureTimestamp > 0) {
-    unsigned long elapsed = (millis() - stats.lastCaptureTimestamp) / 1000;
-    String lastUpdate;
-    if (elapsed < 60) {
-      lastUpdate = String(elapsed) + "s";
-    } else if (elapsed < 3600) {
-      lastUpdate = String(elapsed / 60) + "min " + String(elapsed % 60) + "s";
-    } else {
-      lastUpdate = String(elapsed / 3600) + "h " + String((elapsed % 3600) / 60) + "min";
-    }
-    doc["lastUpdate"] = lastUpdate;
-  } else {
-    doc["lastUpdate"] = "Jamais";
-  }
 
   String json;
   serializeJson(doc, json);
@@ -385,7 +368,13 @@ void handleApiSetInterval() {
 
 // ========== API: REFRESH MODELS ==========
 void handleApiRefreshModels() {
-  String models = AIProvider::fetchModels();
+  int provider = -1;
+  String host = "";
+  
+  if (server.hasArg("provider")) provider = server.arg("provider").toInt();
+  if (server.hasArg("host")) host = server.arg("host");
+  
+  String models = AIProvider::fetchModels(provider, host);
   server.send(200, "application/json", "{\"models\":" + models + "}");
 }
 

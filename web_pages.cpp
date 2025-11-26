@@ -22,19 +22,9 @@ String buildDashboardPage() {
   html += "<div class='stat-label'>Captures totales</div>";
   html += "</div>";
 
-  html += "<div class='stat-card'>";
-  html += "<div class='stat-value' id='stat-success'>" + String(stats.successCount) + "</div>";
-  html += "<div class='stat-label'>Succès</div>";
-  html += "</div>";
-
   html += "<div class='stat-card error'>";
   html += "<div class='stat-value' id='stat-errors'>" + String(stats.errorCount) + "</div>";
   html += "<div class='stat-label'>Erreurs</div>";
-  html += "</div>";
-
-  html += "<div class='stat-card'>";
-  html += "<div class='stat-value' id='stat-wifi'>" + String(WiFiManager::isConnected() ? "✓" : "✗") + "</div>";
-  html += "<div class='stat-label'>WiFi</div>";
   html += "</div>";
   html += "</div>";
 
@@ -42,11 +32,6 @@ String buildDashboardPage() {
   html += "<div class='stat-card'>";
   html += "<div class='stat-label'>Adresse IP</div>";
   html += "<div class='stat-value' style='font-size:1.2rem;' id='stat-ip'>" + WiFiManager::getIP() + "</div>";
-  html += "</div>";
-
-  html += "<div class='stat-card'>";
-  html += "<div class='stat-label'>Dernière mise à jour</div>";
-  html += "<div class='stat-value' style='font-size:0.9rem;' id='stat-last-update'>Jamais</div>";
   html += "</div>";
 
   html += "<div class='stat-card'>";
