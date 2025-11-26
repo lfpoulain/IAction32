@@ -247,30 +247,18 @@ bool AIProvider::sendBatchToAI(const String& base64Image, DynamicJsonDocument& r
       http.addHeader("Authorization", "Bearer " + cfg.openai_key);
     }
 
-    String imageDataUrl = "data:image/jpeg;base64," + base64Image;
-    
-    // Utiliser un buffer dynamique pour le gros payload JSON
-    DynamicJsonDocument payloadDoc(32768); // Large buffer pour l'image base64
-    payloadDoc["model"] = cfg.lm_model;
-    payloadDoc["max_tokens"] = 300;
-    payloadDoc["temperature"] = 0.1;
-    
-    JsonArray messages = payloadDoc.createNestedArray("messages");
-    JsonObject userMessage = messages.createNestedObject();
-    userMessage["role"] = "user";
-    JsonArray content = userMessage.createNestedArray("content");
-    
-    JsonObject textPart = content.createNestedObject();
-    textPart["type"] = "text";
-    textPart["text"] = prompt;
-    
-    JsonObject imagePart = content.createNestedObject();
-    imagePart["type"] = "image_url";
-    JsonObject imageUrl = imagePart.createNestedObject("image_url");
-    imageUrl["url"] = imageDataUrl;
-
-    String payload;
-    serializeJson(payloadDoc, payload);
+    // Construire le JSON manuellement pour éviter les limites de buffer ArduinoJson
+    // L'image base64 peut faire 50-100KB, trop gros pour DynamicJsonDocument
+    String payload = "{";
+    payload += "\"model\":\"" + cfg.lm_model + "\",";
+    payload += "\"max_tokens\":300,";
+    payload += "\"temperature\":0.1,";
+    payload += "\"messages\":[{";
+    payload += "\"role\":\"user\",";
+    payload += "\"content\":[";
+    payload += "{\"type\":\"text\",\"text\":\"" + prompt + "\"},";
+    payload += "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + base64Image + "\"}}";
+    payload += "]}]}";
 
     int httpCode = http.POST(payload);
     if (httpCode == HTTP_CODE_OK) {

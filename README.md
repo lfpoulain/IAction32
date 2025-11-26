@@ -1,4 +1,4 @@
-# IAction32
+# IAction32 v2.4
 
 Système de vision IA multi-provider pour ESP32-CAM avec **MQTT natif** et intégration **Home Assistant automatique**.
 
@@ -6,7 +6,12 @@ Système de vision IA multi-provider pour ESP32-CAM avec **MQTT natif** et inté
 
 ## 🚀 Fonctionnalités
 
-### 📡 MQTT + Home Assistant (v2.2)
+### ⚡ Optimisation Batch (v2.4)
+- **Une seule requête IA** pour toutes les questions (au lieu d'une par question)
+- Réduction drastique du temps de traitement et des coûts API
+- Réponse JSON structurée parsée automatiquement
+
+### 📡 MQTT + Home Assistant
 - **Auto-Discovery** : Les capteurs apparaissent automatiquement dans Home Assistant
 - **MQTT natif** : Communication temps réel via protocole standard IoT
 - **État persistant** : Messages retained pour conserver les valeurs
@@ -18,7 +23,7 @@ Système de vision IA multi-provider pour ESP32-CAM avec **MQTT natif** et inté
 ### 🤖 Multi-Provider IA
 - **LM Studio** : Serveur local pour modèles vision (Qwen, LLaVA, etc.)
 - **Ollama** : Serveur local alternatif
-- **OpenAI** : API cloud (GPT-4.1 nano/mini/standard)
+- **OpenAI** : API cloud (gpt-4.1-nano, gpt-4.1-mini, gpt-4.1)
 
 ### 🎨 Interface Web Moderne
 - Navigation par onglets (Dashboard, Configuration, Questions, Caméra)
@@ -32,11 +37,12 @@ Système de vision IA multi-provider pour ESP32-CAM avec **MQTT natif** et inté
 - ✅ Scan automatique des réseaux WiFi
 - ✅ Questions multiples avec types (Bool / Compteur)
 - ✅ **Instructions automatiques** ajoutées selon le type de question
-- ✅ **Mode Live** (envoi dès que l'IA répond)
-- ✅ **Mode Intervalle** (capture toutes les X secondes)
+- ✅ **Capture ON/OFF** : Activation/désactivation globale (contrôlable via Home Assistant)
+- ✅ **Type Live** : Envoi dès que l'IA répond
+- ✅ **Type Intervalle** : Capture toutes les X secondes
 - ✅ Résolutions 16:9 optimisées (HQVGA, HVGA, HD)
 - ✅ MQTT avec auto-discovery Home Assistant
-- ✅ Statistiques en temps réel avec **timestamp lisible**
+- ✅ Statistiques en temps réel
 - ✅ **Fonctionnement autonome** : La capture continue même si l'interface web est fermée
 
 ---
@@ -420,6 +426,8 @@ Accédez à `http://[IP_ESP32]/` pour accéder aux différents onglets :
 
 ## 📊 Modes de Capture
 
+> **💡 Optimisation v2.4** : Toutes les questions sont envoyées en une seule requête à l'IA, qui répond avec un JSON structuré. Cela réduit drastiquement le temps de traitement et les coûts API.
+
 ### 🔌 Activation (ON/OFF)
 Contrôle global de la capture automatique :
 - **OFF** : Capture manuelle uniquement via le bouton "Tester maintenant"
@@ -431,8 +439,8 @@ Le switch Home Assistant `switch.iaction32_XXXXXX_capture` permet d'activer/dés
 Envoi automatique continu à vitesse maximale :
 
 1. Capture une image
-2. Envoie à l'IA pour analyse
-3. Dès que l'IA répond, envoie les résultats via MQTT
+2. Envoie **toutes les questions** à l'IA en une seule requête
+3. Dès que l'IA répond (JSON), parse et envoie les résultats via MQTT
 4. Capture immédiatement une nouvelle image
 5. Retour à l'étape 2
 
@@ -446,8 +454,8 @@ Envoi automatique continu à vitesse maximale :
 Capture à intervalles réguliers configurables :
 
 1. Capture une image
-2. Envoie à l'IA pour analyse
-3. Envoie les résultats via MQTT
+2. Envoie **toutes les questions** à l'IA en une seule requête
+3. Parse le JSON et envoie les résultats via MQTT
 4. **Attend X secondes** (configurable de 5 à 3600s)
 5. Retour à l'étape 1
 
