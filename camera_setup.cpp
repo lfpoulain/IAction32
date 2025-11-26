@@ -34,11 +34,11 @@ void Camera::init() {
   config.grab_mode = CAMERA_GRAB_LATEST;
 
   if (psramFound()) {
-    config.frame_size = (framesize_t)cfg.camera.framesize;
+    config.frame_size = FRAMESIZE_SVGA; // Forcer 800x600
     config.jpeg_quality = cfg.camera.quality;
     config.fb_count = 2;
     config.fb_location = CAMERA_FB_IN_PSRAM;
-    Serial.println("  ✓ PSRAM détecté");
+    Serial.println("  ✓ PSRAM détecté - Résolution forcée à SVGA (800x600)");
   } else {
     config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 15;
@@ -63,7 +63,7 @@ void Camera::applySettings() {
     return;
   }
 
-  s->set_framesize(s, (framesize_t)cfg.camera.framesize);
+  s->set_framesize(s, FRAMESIZE_SVGA); // Forcer 800x600
   s->set_quality(s, cfg.camera.quality);
   s->set_brightness(s, cfg.camera.brightness);
   s->set_contrast(s, cfg.camera.contrast);
@@ -77,6 +77,17 @@ void Camera::applySettings() {
   if (!cfg.camera.aec) s->set_aec_value(s, cfg.camera.aec_value);
   s->set_gain_ctrl(s, cfg.camera.agc ? 1 : 0);
   if (!cfg.camera.agc) s->set_agc_gain(s, cfg.camera.agc_gain);
+  s->set_gainceiling(s, (gainceiling_t)cfg.camera.gainceiling);
+  s->set_bpc(s, cfg.camera.bpc);
+  s->set_wpc(s, cfg.camera.wpc);
+  s->set_raw_gma(s, cfg.camera.raw_gma);
+  s->set_lenc(s, cfg.camera.lenc);
+  s->set_dcw(s, cfg.camera.dcw);
+  s->set_special_effect(s, cfg.camera.special_effect);
+  s->set_wb_mode(s, cfg.camera.wb_mode);
+  s->set_ae_level(s, cfg.camera.ae_level);
+  s->set_aec2(s, cfg.camera.aec2 ? 1 : 0);
+  s->set_colorbar(s, cfg.camera.colorbar ? 1 : 0);
 
   Serial.println("✓ Paramètres caméra appliqués");
 }

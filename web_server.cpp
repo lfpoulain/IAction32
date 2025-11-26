@@ -91,10 +91,32 @@ void handleSaveCamera() {
   if (server.hasArg("brightness")) cfg.camera.brightness = server.arg("brightness").toInt();
   if (server.hasArg("contrast")) cfg.camera.contrast = server.arg("contrast").toInt();
   if (server.hasArg("saturation")) cfg.camera.saturation = server.arg("saturation").toInt();
+  if (server.hasArg("sharpness")) cfg.camera.sharpness = server.arg("sharpness").toInt();
+  
+  // Exposition & Gain
+  cfg.camera.aec = server.hasArg("aec");
+  if (server.hasArg("aec_value")) cfg.camera.aec_value = server.arg("aec_value").toInt();
+  cfg.camera.aec2 = server.hasArg("aec2");
+  
+  cfg.camera.agc = server.hasArg("agc");
+  if (server.hasArg("agc_gain")) cfg.camera.agc_gain = server.arg("agc_gain").toInt();
+  if (server.hasArg("gainceiling")) cfg.camera.gainceiling = server.arg("gainceiling").toInt();
 
   cfg.camera.hmirror = server.hasArg("hmirror");
   cfg.camera.vflip = server.hasArg("vflip");
   cfg.camera.awb = server.hasArg("awb");
+
+  // Avancé
+  if (server.hasArg("special_effect")) cfg.camera.special_effect = server.arg("special_effect").toInt();
+  if (server.hasArg("wb_mode")) cfg.camera.wb_mode = server.arg("wb_mode").toInt();
+  if (server.hasArg("ae_level")) cfg.camera.ae_level = server.arg("ae_level").toInt();
+  
+  cfg.camera.lenc = server.hasArg("lenc");
+  cfg.camera.wpc = server.hasArg("wpc");
+  cfg.camera.raw_gma = server.hasArg("raw_gma");
+  cfg.camera.bpc = server.hasArg("bpc");
+  cfg.camera.dcw = server.hasArg("dcw");
+  cfg.camera.colorbar = server.hasArg("colorbar");
 
   Storage::save();
   Camera::applySettings();

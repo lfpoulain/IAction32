@@ -52,6 +52,17 @@ void Storage::load() {
   cfg.camera.aec_value = prefs.getInt("cam_aecv", 300);
   cfg.camera.agc = prefs.getBool("cam_agc", true);
   cfg.camera.agc_gain = prefs.getInt("cam_agcg", 0);
+  cfg.camera.gainceiling = prefs.getInt("cam_gceil", 0);
+  cfg.camera.bpc = prefs.getInt("cam_bpc", 0);
+  cfg.camera.wpc = prefs.getInt("cam_wpc", 1);
+  cfg.camera.raw_gma = prefs.getInt("cam_gma", 1);
+  cfg.camera.lenc = prefs.getInt("cam_lenc", 1);
+  cfg.camera.dcw = prefs.getInt("cam_dcw", 1);
+  cfg.camera.special_effect = prefs.getInt("cam_fx", 0);
+  cfg.camera.wb_mode = prefs.getInt("cam_wbm", 0);
+  cfg.camera.ae_level = prefs.getInt("cam_ael", 0);
+  cfg.camera.aec2 = prefs.getBool("cam_aec2", false);
+  cfg.camera.colorbar = prefs.getBool("cam_cbar", false);
 
   // Questions
   cfg.questionsCount = prefs.getInt("q_count", 0);
@@ -116,6 +127,17 @@ void Storage::save() {
   prefs.putInt("cam_aecv", cfg.camera.aec_value);
   prefs.putBool("cam_agc", cfg.camera.agc);
   prefs.putInt("cam_agcg", cfg.camera.agc_gain);
+  prefs.putInt("cam_gceil", cfg.camera.gainceiling);
+  prefs.putInt("cam_bpc", cfg.camera.bpc);
+  prefs.putInt("cam_wpc", cfg.camera.wpc);
+  prefs.putInt("cam_gma", cfg.camera.raw_gma);
+  prefs.putInt("cam_lenc", cfg.camera.lenc);
+  prefs.putInt("cam_dcw", cfg.camera.dcw);
+  prefs.putInt("cam_fx", cfg.camera.special_effect);
+  prefs.putInt("cam_wbm", cfg.camera.wb_mode);
+  prefs.putInt("cam_ael", cfg.camera.ae_level);
+  prefs.putBool("cam_aec2", cfg.camera.aec2);
+  prefs.putBool("cam_cbar", cfg.camera.colorbar);
 
   // Questions
   prefs.putInt("q_count", cfg.questionsCount);

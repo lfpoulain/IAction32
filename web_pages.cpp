@@ -349,14 +349,11 @@ String buildCameraPage() {
 
   html += "<form action='/save_camera' method='POST'>";
 
-  // Résolution
+  // Résolution (Fixée à SVGA)
   html += "<div class='form-group'>";
-  html += "<label class='form-label'>📐 Résolution (16:9 uniquement)</label>";
-  html += "<select name='framesize' class='form-select'>";
-  html += "<option value='3'" + String(cfg.camera.framesize == 3 ? " selected" : "") + ">240x176 (HQVGA)</option>";
-  html += "<option value='7'" + String(cfg.camera.framesize == 7 ? " selected" : "") + ">480x320 (HVGA)</option>";
-  html += "<option value='11'" + String(cfg.camera.framesize == 11 ? " selected" : "") + ">1280x720 (HD) ⭐</option>";
-  html += "</select>";
+  html += "<label class='form-label'>📐 Résolution</label>";
+  html += "<input type='text' class='form-input' value='800x600 (SVGA)' disabled style='background:#1a1f3c;color:#888;'>";
+  html += "<input type='hidden' name='framesize' value='9'>"; // 9 = FRAMESIZE_SVGA
   html += "</div>";
 
   // Qualité JPEG
@@ -383,6 +380,59 @@ String buildCameraPage() {
   html += "<input type='range' name='saturation' class='form-input' min='-2' max='2' value='" + String(cfg.camera.saturation) + "' oninput=\"document.getElementById('sat-val').textContent=this.value\">";
   html += "</div>";
 
+  // Netteté
+  html += "<div class='form-group'>";
+  html += "<label class='form-label'>🔪 Netteté : <span id='sharp-val'>" + String(cfg.camera.sharpness) + "</span></label>";
+  html += "<input type='range' name='sharpness' class='form-input' min='-2' max='2' value='" + String(cfg.camera.sharpness) + "' oninput=\"document.getElementById('sharp-val').textContent=this.value\">";
+  html += "</div>";
+
+  // --- Exposition & Gain ---
+  html += "<div class='form-group' style='margin-top:1.5rem;border-top:1px solid #333;padding-top:1rem;'>";
+  
+  // AEC
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>☀️ Exposition Auto (AEC)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='aec' value='1'" + String(cfg.camera.aec ? " checked" : "") + " onchange=\"document.getElementById('aec-manual').style.display=this.checked?'none':'block'\"><span class='toggle-slider'></span></label>";
+  html += "</div>";
+  
+  html += "<div id='aec-manual' class='form-group' style='display:" + String(cfg.camera.aec ? "none" : "block") + ";'>";
+  html += "<label class='form-label'>⏱️ Exposition Manuelle (0-1200) : <span id='aec-val'>" + String(cfg.camera.aec_value) + "</span></label>";
+  html += "<input type='range' name='aec_value' class='form-input' min='0' max='1200' value='" + String(cfg.camera.aec_value) + "' oninput=\"document.getElementById('aec-val').textContent=this.value\">";
+  html += "</div>";
+
+  // AGC
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>📶 Gain Auto (AGC)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='agc' value='1'" + String(cfg.camera.agc ? " checked" : "") + " onchange=\"document.getElementById('agc-manual').style.display=this.checked?'none':'block'\"><span class='toggle-slider'></span></label>";
+  html += "</div>";
+
+  html += "<div id='agc-manual' class='form-group' style='display:" + String(cfg.camera.agc ? "none" : "block") + ";'>";
+  html += "<label class='form-label'>🎚️ Gain Manuel (0-30) : <span id='agc-val'>" + String(cfg.camera.agc_gain) + "</span></label>";
+  html += "<input type='range' name='agc_gain' class='form-input' min='0' max='30' value='" + String(cfg.camera.agc_gain) + "' oninput=\"document.getElementById('agc-val').textContent=this.value\">";
+  html += "</div>";
+
+  // Gain Ceiling
+  html += "<div class='form-group'>";
+  html += "<label class='form-label'>📊 Plafond Gain (Gain Ceiling)</label>";
+  html += "<select name='gainceiling' class='form-select'>";
+  html += "<option value='0'" + String(cfg.camera.gainceiling == 0 ? " selected" : "") + ">2x</option>";
+  html += "<option value='1'" + String(cfg.camera.gainceiling == 1 ? " selected" : "") + ">4x</option>";
+  html += "<option value='2'" + String(cfg.camera.gainceiling == 2 ? " selected" : "") + ">8x</option>";
+  html += "<option value='3'" + String(cfg.camera.gainceiling == 3 ? " selected" : "") + ">16x</option>";
+  html += "<option value='4'" + String(cfg.camera.gainceiling == 4 ? " selected" : "") + ">32x</option>";
+  html += "<option value='5'" + String(cfg.camera.gainceiling == 5 ? " selected" : "") + ">64x</option>";
+  html += "<option value='6'" + String(cfg.camera.gainceiling == 6 ? " selected" : "") + ">128x</option>";
+  html += "</select>";
+  html += "</div>";
+
+  // AEC2 (DSP)
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>🔬 AEC DSP (améliore auto-exposition)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='aec2' value='1'" + String(cfg.camera.aec2 ? " checked" : "") + "><span class='toggle-slider'></span></label>";
+  html += "</div>";
+  
+  html += "</div>";
+
   // Toggles
   html += "<div class='toggle-group'>";
   html += "<span style='font-weight:600;'>🔄 Miroir horizontal</span>";
@@ -397,6 +447,66 @@ String buildCameraPage() {
   html += "<div class='toggle-group'>";
   html += "<span style='font-weight:600;'>⚪ Balance des blancs auto (AWB)</span>";
   html += "<label class='toggle'><input type='checkbox' name='awb' value='1'" + String(cfg.camera.awb ? " checked" : "") + "><span class='toggle-slider'></span></label>";
+  html += "</div>";
+
+  // --- Réglages Avancés ---
+  html += "<div class='form-group' style='margin-top:1.5rem;border-top:1px solid #333;padding-top:1rem;'>";
+  html += "<label class='form-label'>🎨 Effet Spécial</label>";
+  html += "<select name='special_effect' class='form-select'>";
+  html += "<option value='0'" + String(cfg.camera.special_effect == 0 ? " selected" : "") + ">Aucun</option>";
+  html += "<option value='1'" + String(cfg.camera.special_effect == 1 ? " selected" : "") + ">Négatif</option>";
+  html += "<option value='2'" + String(cfg.camera.special_effect == 2 ? " selected" : "") + ">N&B</option>";
+  html += "<option value='3'" + String(cfg.camera.special_effect == 3 ? " selected" : "") + ">Rouge</option>";
+  html += "<option value='4'" + String(cfg.camera.special_effect == 4 ? " selected" : "") + ">Vert</option>";
+  html += "<option value='5'" + String(cfg.camera.special_effect == 5 ? " selected" : "") + ">Bleu</option>";
+  html += "<option value='6'" + String(cfg.camera.special_effect == 6 ? " selected" : "") + ">Sépia</option>";
+  html += "</select>";
+  html += "</div>";
+
+  html += "<div class='form-group'>";
+  html += "<label class='form-label'>☀️ Mode WB (si AWB activé)</label>";
+  html += "<select name='wb_mode' class='form-select'>";
+  html += "<option value='0'" + String(cfg.camera.wb_mode == 0 ? " selected" : "") + ">Auto</option>";
+  html += "<option value='1'" + String(cfg.camera.wb_mode == 1 ? " selected" : "") + ">Ensoleillé</option>";
+  html += "<option value='2'" + String(cfg.camera.wb_mode == 2 ? " selected" : "") + ">Nuageux</option>";
+  html += "<option value='3'" + String(cfg.camera.wb_mode == 3 ? " selected" : "") + ">Bureau</option>";
+  html += "<option value='4'" + String(cfg.camera.wb_mode == 4 ? " selected" : "") + ">Maison</option>";
+  html += "</select>";
+  html += "</div>";
+
+  html += "<div class='form-group'>";
+  html += "<label class='form-label'>💡 AE Level : <span id='ael-val'>" + String(cfg.camera.ae_level) + "</span></label>";
+  html += "<input type='range' name='ae_level' class='form-input' min='-2' max='2' value='" + String(cfg.camera.ae_level) + "' oninput=\"document.getElementById('ael-val').textContent=this.value\">";
+  html += "</div>";
+
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>🔧 Lens Correction (LENC)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='lenc' value='1'" + String(cfg.camera.lenc ? " checked" : "") + "><span class='toggle-slider'></span></label>";
+  html += "</div>";
+
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>✨ White Pixel Correction (WPC)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='wpc' value='1'" + String(cfg.camera.wpc ? " checked" : "") + "><span class='toggle-slider'></span></label>";
+  html += "</div>";
+
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>📉 Gamma Correction (GMA)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='raw_gma' value='1'" + String(cfg.camera.raw_gma ? " checked" : "") + "><span class='toggle-slider'></span></label>";
+  html += "</div>";
+
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>⚫ Black Pixel Correction (BPC)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='bpc' value='1'" + String(cfg.camera.bpc ? " checked" : "") + "><span class='toggle-slider'></span></label>";
+  html += "</div>";
+
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>🔍 Downsize EN (DCW)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='dcw' value='1'" + String(cfg.camera.dcw ? " checked" : "") + "><span class='toggle-slider'></span></label>";
+  html += "</div>";
+
+  html += "<div class='toggle-group'>";
+  html += "<span style='font-weight:600;'>🎨 Barre de Test (Colorbar)</span>";
+  html += "<label class='toggle'><input type='checkbox' name='colorbar' value='1'" + String(cfg.camera.colorbar ? " checked" : "") + "><span class='toggle-slider'></span></label>";
   html += "</div>";
 
   html += "<div class='btn-group' style='margin-top:2rem;'>";

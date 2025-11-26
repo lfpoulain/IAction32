@@ -102,6 +102,17 @@ struct CameraConfig {
   int aec_value;
   bool agc;
   int agc_gain;
+  int gainceiling;
+  int bpc;
+  int wpc;
+  int raw_gma;
+  int lenc;
+  int dcw;
+  int special_effect;
+  int wb_mode;
+  int ae_level;
+  bool aec2;
+  bool colorbar;
 };
 
 struct AppConfig {
