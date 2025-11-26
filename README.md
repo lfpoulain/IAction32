@@ -1,4 +1,4 @@
-# IAction32 v2.3
+# IAction32
 
 Système de vision IA multi-provider pour ESP32-CAM avec **MQTT natif** et intégration **Home Assistant automatique**.
 
@@ -83,7 +83,7 @@ Dans `config.h`, sélectionnez votre modèle :
 
 **Paramètres Arduino IDE** :
 ```
-Board: AI Thinker ESP32-CAM
+Board: AI Thinker ESP32-CAM ou Wrover Kit
 Upload Speed: 115200
 Flash Frequency: 80MHz
 Flash Mode: QIO
@@ -106,12 +106,10 @@ Ou configurez directement via l'interface web après le premier démarrage.
 ### 4. Téléversement
 
 1. Ouvrez `IAction32.ino` dans Arduino IDE
-2. Sélectionnez le board : **AI Thinker ESP32-CAM**
+2. Sélectionnez le board : **AI Thinker ESP32-CAM ou Wrover**
 3. Sélectionnez le port COM
-4. **Maintenez IO0 à GND** pendant l'upload
-5. Appuyez sur Upload
-6. **Débranchez IO0** après l'upload
-7. Appuyez sur **RESET**
+4. Appuyez sur Upload
+5. Appuyez sur **RESET**
 
 ---
 
@@ -654,9 +652,8 @@ iaction32/iaction32_XXXXXX/car_count 3
 
 ## 👨‍💻 Auteur
 
-**Artus Poulain - Les Frères Poulain**
-
-Version 2.3 - 2024
+Les Frères Poulain**
+2024
 
 ---
 
@@ -666,4 +663,3 @@ MIT License - Utilisation libre
 
 ---
 
-**Prêt pour la production ! 🚀**
