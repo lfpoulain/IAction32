@@ -53,7 +53,7 @@ String buildDashboardPage() {
   html += "<div style='margin-top:1.5rem;'>";
   html += "<label class='form-label' style='font-weight:600;'>Mode</label>";
   html += "<div class='mode-buttons'>";
-  html += "<button type='button' class='mode-btn" + String(cfg.capture_mode_live ? " active" : "") + "' id='mode-live' onclick='setCaptureMode(true)'>Live (1s)</button>";
+  html += "<button type='button' class='mode-btn" + String(cfg.capture_mode_live ? " active" : "") + "' id='mode-live' onclick='setCaptureMode(true)'>Live (max)</button>";
   html += "<button type='button' class='mode-btn" + String(!cfg.capture_mode_live ? " active" : "") + "' id='mode-interval' onclick='setCaptureMode(false)'>Intervalle</button>";
   html += "</div>";
   html += "<div id='interval-config' style='margin-top:1rem;display:" + String(!cfg.capture_mode_live ? "block" : "none") + ";'>";
@@ -368,8 +368,14 @@ String buildCameraPage() {
   // Resolution
   html += "<div class='form-group'>";
   html += "<label class='form-label'>Resolution</label>";
-  html += "<input type='text' class='form-input' value='800x600 (SVGA)' disabled style='background:#1a1f3c;color:#888;'>";
-  html += "<input type='hidden' name='framesize' value='9'>";
+  html += "<select name='framesize' class='form-select'>";
+  html += "<option value='5'" + String(cfg.camera.framesize == 5 ? " selected" : "") + ">320x240 (QVGA)</option>";
+  html += "<option value='8'" + String(cfg.camera.framesize == 8 ? " selected" : "") + ">640x480 (VGA)</option>";
+  html += "<option value='9'" + String(cfg.camera.framesize == 9 ? " selected" : "") + ">800x600 (SVGA)</option>";
+  html += "<option value='10'" + String(cfg.camera.framesize == 10 ? " selected" : "") + ">1024x768 (XGA)</option>";
+  html += "<option value='11'" + String(cfg.camera.framesize == 11 ? " selected" : "") + ">1280x720 (HD)</option>";
+  html += "<option value='13'" + String(cfg.camera.framesize == 13 ? " selected" : "") + ">1280x1024 (SXGA)</option>";
+  html += "</select>";
   html += "</div>";
 
   // Qualite JPEG

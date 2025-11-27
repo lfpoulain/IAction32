@@ -251,68 +251,78 @@ void handleApiStatus() {
 // ========== RUN CAPTURE CYCLE ==========
 String runCaptureCycle() {
   if (stats.captureInProgress) {
-    return "{\"error\":\"Capture in progress\"}";
+    return F("{\"error\":\"Capture in progress\"}");
   }
 
   stats.captureInProgress = true;
 
   String base64Image = Camera::captureBase64();
-  DynamicJsonDocument doc(2048);
-  DynamicJsonDocument results(1024);
-
+  
   if (base64Image.length() == 0) {
-    doc["success"] = false;
-    doc["error"] = "Erreur capture image";
+    stats.captureInProgress = false;
     stats.errorCount++;
-  } else {
-    bool allSuccess = false;
-    
-    if (cfg.questionsCount > 0) {
-      DynamicJsonDocument batchResults(4096);
-      if (AIProvider::sendBatchToAI(base64Image, batchResults)) {
-        // Copier les résultats du batch dans l'objet results final
-        // et vérifier si toutes les questions attendues sont là
-        allSuccess = true;
-        for (int i = 0; i < cfg.questionsCount; i++) {
-          if (!cfg.questions[i].enabled) continue;
-          
-          String key = cfg.questions[i].jsonKey;
-          if (batchResults.containsKey(key)) {
-            results[key] = batchResults[key];
-          } else {
-            results[key] = "Missing in AI response";
-            allSuccess = false;
-          }
-        }
-      } else {
-        // Erreur globale (HTTP ou parsing)
-        for (int i = 0; i < cfg.questionsCount; i++) {
-          if (cfg.questions[i].enabled) {
-            results[cfg.questions[i].jsonKey] = "AI Error";
-          }
-        }
-      }
-    } else {
-      allSuccess = true; // Pas de questions, donc succès technique
-    }
+    return F("{\"success\":false,\"error\":\"Erreur capture image\"}");
+  }
 
-    stats.captureCount++;
-    stats.lastCaptureTimestamp = millis();
-
-    if (allSuccess) {
-      doc["success"] = true;
-      stats.lastResult = "OK";
-      MQTTManager::publishResults(results);
-    } else {
-      stats.errorCount++;
-      doc["success"] = false;
-      doc["error"] = "Erreur IA ou réponse incomplète";
-      stats.lastResult = "Erreur";
+  // Vérifier qu'il y a des questions activées
+  bool hasEnabledQuestions = false;
+  for (int i = 0; i < cfg.questionsCount; i++) {
+    if (cfg.questions[i].enabled) {
+      hasEnabledQuestions = true;
+      break;
     }
-    
-    doc["results"] = results;
   }
   
+  if (!hasEnabledQuestions) {
+    stats.captureInProgress = false;
+    stats.captureCount++;
+    stats.lastCaptureTimestamp = millis();
+    stats.lastResult = "OK (no questions)";
+    return F("{\"success\":true,\"results\":{}}");
+  }
+
+  DynamicJsonDocument results(2048);
+  bool allSuccess = false;
+  
+  if (AIProvider::sendBatchToAI(base64Image, results)) {
+    // Vérifier si toutes les questions attendues sont là
+    allSuccess = true;
+    for (int i = 0; i < cfg.questionsCount; i++) {
+      if (!cfg.questions[i].enabled) continue;
+      if (!results.containsKey(cfg.questions[i].jsonKey)) {
+        results[cfg.questions[i].jsonKey] = "Missing in AI response";
+        allSuccess = false;
+      }
+    }
+  } else {
+    // Erreur globale (HTTP ou parsing)
+    for (int i = 0; i < cfg.questionsCount; i++) {
+      if (cfg.questions[i].enabled) {
+        results[cfg.questions[i].jsonKey] = "AI Error";
+      }
+    }
+  }
+  
+  // Libérer base64Image dès que possible
+  base64Image = String();
+
+  stats.captureCount++;
+  stats.lastCaptureTimestamp = millis();
+
+  DynamicJsonDocument doc(2048 + results.memoryUsage());
+  
+  if (allSuccess) {
+    doc["success"] = true;
+    stats.lastResult = "OK";
+    MQTTManager::publishResults(results);
+  } else {
+    stats.errorCount++;
+    doc["success"] = false;
+    doc["error"] = "Erreur IA ou reponse incomplete";
+    stats.lastResult = "Erreur";
+  }
+  
+  doc["results"] = results;
   stats.captureInProgress = false;
   
   String json;
@@ -334,21 +344,23 @@ void handleApiCapture() {
 unsigned long lastAutoCaptureTime = 0;
 
 void WebServerManager::processAutoCapture() {
-  // Ne rien faire si capture désactivée
-  if (!cfg.capture_enabled) return;
+  // Ne rien faire si capture désactivée ou en cours
+  if (!cfg.capture_enabled || stats.captureInProgress) return;
   
-  unsigned long now = millis();
   bool shouldCapture = false;
 
   if (cfg.capture_mode_live) {
-    // Mode Live: capturer avec delai minimum 1s
-    if (now - lastAutoCaptureTime > 1000) shouldCapture = true;
+    // Mode Live: capturer dès que la précédente est terminée (push max AI server)
+    shouldCapture = true;
   } else {
     // Mode Interval
-    if (now - lastAutoCaptureTime > ((unsigned long)cfg.interval_seconds * 1000)) shouldCapture = true;
+    unsigned long now = millis();
+    if (now - lastAutoCaptureTime >= ((unsigned long)cfg.interval_seconds * 1000)) {
+      shouldCapture = true;
+    }
   }
 
-  if (shouldCapture && !stats.captureInProgress) {
+  if (shouldCapture) {
     runCaptureCycle();
     lastAutoCaptureTime = millis();
   }

@@ -26,6 +26,7 @@ void WiFiManager::connect() {
     connected = true;
     Logger::printf("WiFi connected! IP: %s", WiFi.localIP().toString().c_str());
   } else {
+    connected = false;
     Logger::log("WiFi failed, starting AP...");
     WiFi.mode(WIFI_AP);
     WiFi.softAP(AP_SSID, AP_PASSWORD);
@@ -38,7 +39,8 @@ void WiFiManager::checkConnection() {
   if (millis() - lastCheck < 30000) return; // Vérifier toutes les 30s
   lastCheck = millis();
 
-  if (connected && WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED) {
+    connected = false;
     Logger::log("WiFi lost, reconnecting...");
     connect();
   }

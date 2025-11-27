@@ -35,11 +35,11 @@ void Camera::init() {
   config.grab_mode = CAMERA_GRAB_LATEST;
 
   if (psramFound()) {
-    config.frame_size = FRAMESIZE_SVGA; // Forcer 800x600
+    config.frame_size = (framesize_t)cfg.camera.framesize;
     config.jpeg_quality = cfg.camera.quality;
     config.fb_count = 2;
     config.fb_location = CAMERA_FB_IN_PSRAM;
-    Logger::log("PSRAM detected - SVGA");
+    Logger::printf("PSRAM detected - framesize: %d", cfg.camera.framesize);
   } else {
     config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 15;
@@ -64,7 +64,7 @@ void Camera::applySettings() {
     return;
   }
 
-  s->set_framesize(s, FRAMESIZE_SVGA); // Forcer 800x600
+  s->set_framesize(s, (framesize_t)cfg.camera.framesize);
   s->set_quality(s, cfg.camera.quality);
   s->set_brightness(s, cfg.camera.brightness);
   s->set_contrast(s, cfg.camera.contrast);

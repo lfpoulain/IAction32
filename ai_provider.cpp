@@ -73,7 +73,7 @@ bool AIProvider::sendBatchToAI(const String& base64Image, DynamicJsonDocument& r
   // 4. Construire le payload JSON (format OpenAI pour tous)
   String payload;
   payload.reserve(base64Image.length() + prompt.length() + 300);
-  payload = F("{\"model\":\"");
+  payload += F("{\"model\":\"");
   payload += cfg.lm_model;
   payload += F("\",\"max_tokens\":300,\"temperature\":0.1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"");
   escapeJsonTo(payload, prompt);
