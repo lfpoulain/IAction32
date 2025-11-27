@@ -14,13 +14,16 @@
 #include "mqtt_manager.h"
 #include "web_server.h"
 #include "storage.h"
+#include "logger.h"
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n\n╔════════════════════════════════════════╗");
-  Serial.println("║   IAction32 v2.3                      ║");
-  Serial.println("║   Multi-Provider AI + MQTT/HA         ║");
-  Serial.println("╚════════════════════════════════════════╝\n");
+  Logger::init();
+  
+  Logger::log("================================");
+  Logger::log("  IAction32 v2.5");
+  Logger::log("  Multi-Provider AI + MQTT/HA");
+  Logger::log("================================");
 
   // Initialisation
   Storage::init();
@@ -37,14 +40,16 @@ void setup() {
 
   WebServerManager::init();
 
-  Serial.printf("\n✓ Interface web: http://%s/\n", WiFiManager::getIP().c_str());
-  Serial.println("✓ Système prêt\n");
+  Logger::printf("\n✓ Interface web: http://%s/\n", WiFiManager::getIP().c_str());
+  Logger::log("✓ Système prêt\n");
 }
 
 void loop() {
   WebServerManager::handle();
+  yield(); // Laisser le WiFi/systeme respirer
   WebServerManager::processAutoCapture();
+  yield();
   WiFiManager::checkConnection();
   MQTTManager::loop();
-  delay(10);
+  delay(1); // Minimal delay
 }

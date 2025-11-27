@@ -4,6 +4,7 @@
 
 #include "storage.h"
 #include "esp_camera.h"
+#include "logger.h"
 
 static Preferences prefs;
 
@@ -12,7 +13,7 @@ void Storage::init() {
 }
 
 void Storage::load() {
-  Serial.println("📂 Chargement de la configuration...");
+  Logger::log("Loading config...");
 
   // WiFi
   cfg.wifi_ssid = prefs.getString("wifi_ssid", DEFAULT_WIFI_SSID);
@@ -83,11 +84,11 @@ void Storage::load() {
     cfg.questionsCount = 1;
   }
 
-  Serial.println("✓ Configuration chargée");
+  Logger::log("Config loaded");
 }
 
 void Storage::save() {
-  Serial.println("💾 Sauvegarde de la configuration...");
+  Logger::log("Saving config...");
 
   // WiFi
   prefs.putString("wifi_ssid", cfg.wifi_ssid);
@@ -149,10 +150,10 @@ void Storage::save() {
     prefs.putBool((prefix + "enabled").c_str(), cfg.questions[i].enabled);
   }
 
-  Serial.println("✓ Configuration sauvegardée");
+  Logger::log("Config saved");
 }
 
 void Storage::reset() {
   prefs.clear();
-  Serial.println("✓ Configuration réinitialisée");
+  Logger::log("Config reset");
 }

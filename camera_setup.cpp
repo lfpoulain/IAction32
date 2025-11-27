@@ -6,9 +6,10 @@
 #include "esp_camera.h"
 #include "config.h"
 #include "base64.h"
+#include "logger.h"
 
 void Camera::init() {
-  Serial.println("📷 Initialisation de la caméra...");
+  Logger::log("Camera init...");
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -38,28 +39,28 @@ void Camera::init() {
     config.jpeg_quality = cfg.camera.quality;
     config.fb_count = 2;
     config.fb_location = CAMERA_FB_IN_PSRAM;
-    Serial.println("  ✓ PSRAM détecté - Résolution forcée à SVGA (800x600)");
+    Logger::log("PSRAM detected - SVGA");
   } else {
     config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 15;
     config.fb_count = 1;
     config.fb_location = CAMERA_FB_IN_DRAM;
-    Serial.println("  ⚠ PSRAM non détecté");
+    Logger::log("No PSRAM - QVGA");
   }
 
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
-    Serial.printf("  ✗ Erreur init caméra: 0x%x\n", err);
+    Logger::printf("Camera init error: 0x%x", err);
     return;
   }
 
-  Serial.println("✓ Caméra initialisée");
+  Logger::log("Camera ready");
 }
 
 void Camera::applySettings() {
   sensor_t* s = esp_camera_sensor_get();
   if (!s) {
-    Serial.println("✗ Erreur: capteur non disponible");
+    Logger::log("Sensor unavailable");
     return;
   }
 
@@ -89,16 +90,25 @@ void Camera::applySettings() {
   s->set_aec2(s, cfg.camera.aec2 ? 1 : 0);
   s->set_colorbar(s, cfg.camera.colorbar ? 1 : 0);
 
-  Serial.println("✓ Paramètres caméra appliqués");
+  Logger::log("Camera settings applied");
 }
 
 String Camera::captureBase64() {
   camera_fb_t* fb = esp_camera_fb_get();
   if (!fb) {
-    Serial.println("✗ Erreur capture image");
+    Logger::log("Capture error");
     return "";
   }
 
+  // Verifier que c'est un JPEG valide (commence par FFD8)
+  if (fb->len < 2 || fb->buf[0] != 0xFF || fb->buf[1] != 0xD8) {
+    Logger::log("Invalid JPEG header!");
+    esp_camera_fb_return(fb);
+    return "";
+  }
+
+  Logger::printf("JPEG: %d bytes, header: %02X%02X", fb->len, fb->buf[0], fb->buf[1]);
+  
   String base64Image = base64::encode(fb->buf, fb->len);
   esp_camera_fb_return(fb);
   return base64Image;

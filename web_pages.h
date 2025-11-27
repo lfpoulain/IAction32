@@ -11,5 +11,6 @@ String buildDashboardPage();
 String buildConfigPage();
 String buildQuestionsPage();
 String buildCameraPage();
+String buildLogsPage();
 
 #endif

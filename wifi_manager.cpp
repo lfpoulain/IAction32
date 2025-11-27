@@ -4,13 +4,14 @@
 
 #include "wifi_manager.h"
 #include "config.h"
+#include "logger.h"
 #include <WiFi.h>
 #include <ArduinoJson.h>
 
 static bool connected = false;
 
 void WiFiManager::connect() {
-  Serial.printf("📡 Connexion à %s...\n", cfg.wifi_ssid.c_str());
+  Logger::printf("WiFi connecting to %s...", cfg.wifi_ssid.c_str());
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(cfg.wifi_ssid.c_str(), cfg.wifi_password.c_str());
@@ -18,18 +19,17 @@ void WiFiManager::connect() {
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
-    Serial.print(".");
     attempts++;
   }
 
   if (WiFi.status() == WL_CONNECTED) {
     connected = true;
-    Serial.printf("\n✓ WiFi connecté! IP: %s\n", WiFi.localIP().toString().c_str());
+    Logger::printf("WiFi connected! IP: %s", WiFi.localIP().toString().c_str());
   } else {
-    Serial.println("\n⚠ Échec WiFi, démarrage du point d'accès...");
+    Logger::log("WiFi failed, starting AP...");
     WiFi.mode(WIFI_AP);
     WiFi.softAP(AP_SSID, AP_PASSWORD);
-    Serial.printf("✓ AP démarré: %s (IP: %s)\n", AP_SSID, WiFi.softAPIP().toString().c_str());
+    Logger::printf("AP started: %s (IP: %s)", AP_SSID, WiFi.softAPIP().toString().c_str());
   }
 }
 
@@ -39,7 +39,7 @@ void WiFiManager::checkConnection() {
   lastCheck = millis();
 
   if (connected && WiFi.status() != WL_CONNECTED) {
-    Serial.println("⚠ WiFi perdu, reconnexion...");
+    Logger::log("WiFi lost, reconnecting...");
     connect();
   }
 }
@@ -56,10 +56,10 @@ String WiFiManager::scanNetworks() {
   DynamicJsonDocument doc(2048);
   JsonArray arr = doc.to<JsonArray>();
 
-  Serial.println("📡 Scan des réseaux WiFi...");
+  Logger::log("Scanning WiFi networks...");
   int n = WiFi.scanNetworks();
 
-  Serial.printf("  ✓ %d réseaux trouvés\n", n);
+  Logger::printf("%d networks found", n);
   for (int i = 0; i < n; i++) {
     arr.add(WiFi.SSID(i));
   }

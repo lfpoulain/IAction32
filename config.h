@@ -52,7 +52,7 @@
 
 // ========== CONSTANTES ==========
 #define MAX_QUESTIONS          10
-#define AP_SSID               "ESP32-CAM-Config"
+#define AP_SSID               "IAction32-Config"
 #define AP_PASSWORD           "12345678"
 
 // ========== VALEURS PAR DÉFAUT ==========

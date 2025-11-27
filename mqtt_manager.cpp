@@ -5,6 +5,7 @@
 #include "mqtt_manager.h"
 #include "config.h"
 #include "wifi_manager.h"
+#include "logger.h"
 #include <PubSubClient.h>
 #include <WiFi.h>
 
@@ -24,7 +25,7 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String commandTopic = cfg.mqtt_topic + "/" + deviceId + "/capture/set";
   if (String(topic) == commandTopic) {
     cfg.capture_enabled = (message == "ON");
-    Serial.printf("📡 MQTT: Capture %s\n", cfg.capture_enabled ? "activée" : "désactivée");
+    Logger::printf("MQTT: Capture %s", cfg.capture_enabled ? "ON" : "OFF");
     
     // Publier l'état actuel
     String stateTopic = cfg.mqtt_topic + "/" + deviceId + "/capture/state";
@@ -35,11 +36,11 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
 // ========== INIT ==========
 void MQTTManager::init() {
   if (!cfg.mqtt_enabled) {
-    Serial.println("📡 MQTT désactivé");
+    Logger::log("MQTT disabled");
     return;
   }
 
-  Serial.println("📡 Initialisation MQTT...");
+  Logger::log("MQTT init...");
 
   // Générer un ID unique basé sur l'adresse MAC
   uint8_t mac[6];
@@ -50,8 +51,7 @@ void MQTTManager::init() {
   mqttClient.setBufferSize(2048); // Buffer plus grand pour les messages discovery
   mqttClient.setCallback(mqttCallback);
 
-  Serial.printf("  Device ID: %s\n", deviceId.c_str());
-  Serial.println("✓ MQTT initialisé");
+  Logger::printf("MQTT ready (ID: %s)", deviceId.c_str());
 }
 
 // ========== CONNECT ==========
@@ -60,8 +60,7 @@ void MQTTManager::connect() {
 
   if (mqttClient.connected()) return;
 
-  Serial.println("📡 Connexion au broker MQTT...");
-  Serial.printf("  Serveur: %s:%d\n", cfg.mqtt_server.c_str(), cfg.mqtt_port);
+  Logger::printf("MQTT connecting to %s:%d", cfg.mqtt_server.c_str(), cfg.mqtt_port);
 
   // Will message (LWT - Last Will Testament)
   String availTopic = cfg.mqtt_topic + "/" + deviceId + "/availability";
@@ -88,7 +87,7 @@ void MQTTManager::connect() {
   }
 
   if (connected) {
-    Serial.println("✓ MQTT connecté");
+    Logger::log("MQTT connected");
 
     // Publier availability
     mqttClient.publish(availTopic.c_str(), "online", true);
@@ -96,7 +95,7 @@ void MQTTManager::connect() {
     // S'abonner au topic de commande pour le switch
     String commandTopic = cfg.mqtt_topic + "/" + deviceId + "/capture/set";
     mqttClient.subscribe(commandTopic.c_str());
-    Serial.printf("  Abonné à: %s\n", commandTopic.c_str());
+    Logger::printf("Subscribed: %s", commandTopic.c_str());
 
     // Publier discovery config pour Home Assistant
     publishDiscovery();
@@ -107,7 +106,7 @@ void MQTTManager::connect() {
     mqttClient.publish(stateTopic.c_str(), cfg.capture_enabled ? "ON" : "OFF", true);
 
   } else {
-    Serial.printf("✗ Échec connexion MQTT (code: %d)\n", mqttClient.state());
+    Logger::printf("MQTT failed (code: %d)", mqttClient.state());
   }
 }
 
@@ -158,7 +157,7 @@ void MQTTManager::publishResults(DynamicJsonDocument& results) {
     }
 
     mqttClient.publish(topic.c_str(), value.c_str(), true);
-    Serial.printf("📤 MQTT: %s = %s\n", topic.c_str(), value.c_str());
+    Logger::printf("MQTT: %s=%s", topic.c_str(), value.c_str());
   }
 
   // Publier aussi un état global en JSON
@@ -172,16 +171,16 @@ void MQTTManager::publishResults(DynamicJsonDocument& results) {
 void MQTTManager::publishDiscovery() {
   if (!isConnected()) return;
 
-  Serial.println("📡 Publication de la configuration Auto-Discovery...");
+  Logger::log("Publishing HA discovery...");
 
-  // Device info commun
-  DynamicJsonDocument deviceDoc(512);
+  // Device info commun (réutilisé pour chaque sensor)
+  StaticJsonDocument<256> deviceDoc;
   JsonObject device = deviceDoc.createNestedObject("device");
   device["identifiers"][0] = deviceId;
   device["name"] = cfg.device_name;
-  device["model"] = "ESP32-CAM";
-  device["manufacturer"] = "Les Frères Poulain";
-  device["sw_version"] = "2.2";
+  device["model"] = F("ESP32-CAM IAction32");
+  device["manufacturer"] = F("Les Frères Poulain");
+  device["sw_version"] = F("2.3");
 
   // Pour chaque question, créer un sensor/binary_sensor
   for (int i = 0; i < cfg.questionsCount; i++) {
@@ -191,7 +190,7 @@ void MQTTManager::publishDiscovery() {
     String component = (cfg.questions[i].type == QUESTION_BOOL) ? "binary_sensor" : "sensor";
     String discoveryTopic = "homeassistant/" + component + "/" + objectId + "/config";
 
-    DynamicJsonDocument doc(1024);
+    StaticJsonDocument<512> doc;
 
     // Configuration de base
     doc["name"] = cfg.questions[i].jsonKey;
@@ -228,7 +227,7 @@ void MQTTManager::publishDiscovery() {
     serializeJson(doc, payload);
 
     mqttClient.publish(discoveryTopic.c_str(), payload.c_str(), true);
-    Serial.printf("  ✓ Discovery: %s\n", cfg.questions[i].jsonKey.c_str());
+    Logger::printf("Discovery: %s", cfg.questions[i].jsonKey.c_str());
 
     delay(100); // Petit délai entre chaque publication
   }
@@ -237,7 +236,7 @@ void MQTTManager::publishDiscovery() {
   String ipSensorId = deviceId + "_ip";
   String ipDiscoveryTopic = "homeassistant/sensor/" + ipSensorId + "/config";
 
-  DynamicJsonDocument ipDoc(1024);
+  StaticJsonDocument<384> ipDoc;
   ipDoc["name"] = "IP Address";
   ipDoc["unique_id"] = ipSensorId;
   ipDoc["state_topic"] = cfg.mqtt_topic + "/" + deviceId + "/ip";
@@ -258,7 +257,7 @@ void MQTTManager::publishDiscovery() {
   String switchId = deviceId + "_capture";
   String switchDiscoveryTopic = "homeassistant/switch/" + switchId + "/config";
 
-  DynamicJsonDocument switchDoc(1024);
+  StaticJsonDocument<384> switchDoc;
   switchDoc["name"] = "Capture";
   switchDoc["unique_id"] = switchId;
   switchDoc["state_topic"] = cfg.mqtt_topic + "/" + deviceId + "/capture/state";
@@ -273,7 +272,7 @@ void MQTTManager::publishDiscovery() {
   serializeJson(switchDoc, switchPayload);
   mqttClient.publish(switchDiscoveryTopic.c_str(), switchPayload.c_str(), true);
 
-  Serial.println("✓ Configuration Auto-Discovery publiée");
+  Logger::log("HA discovery published");
 }
 
 // ========== PUBLISH CAPTURE STATE ==========
@@ -299,7 +298,7 @@ void MQTTManager::removeDiscovery(const String& jsonKey, int questionType) {
   String valueTopic = cfg.mqtt_topic + "/" + deviceId + "/" + jsonKey;
   mqttClient.publish(valueTopic.c_str(), "", true);
 
-  Serial.printf("🗑️ Discovery supprimé: %s\n", jsonKey.c_str());
+  Logger::printf("Discovery removed: %s", jsonKey.c_str());
 }
 
 // ========== DISCONNECT ==========
@@ -308,6 +307,6 @@ void MQTTManager::disconnect() {
     String availTopic = cfg.mqtt_topic + "/" + deviceId + "/availability";
     mqttClient.publish(availTopic.c_str(), "offline", true);
     mqttClient.disconnect();
-    Serial.println("✓ MQTT déconnecté");
+    Logger::log("MQTT disconnected");
   }
 }

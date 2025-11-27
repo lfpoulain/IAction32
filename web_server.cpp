@@ -11,9 +11,11 @@
 #include "wifi_manager.h"
 #include "ai_provider.h"
 #include "mqtt_manager.h"
+#include "logger.h"
 #include <WebServer.h>
 #include <ArduinoJson.h>
 #include "esp_camera.h"
+#include <Update.h>
 
 static WebServer server(80);
 
@@ -24,6 +26,7 @@ void handleRoot() {
   html += buildConfigPage();
   html += buildQuestionsPage();
   html += buildCameraPage();
+  html += buildLogsPage();
   html += FPSTR(HTML_FOOT);
   server.send(200, "text/html", html);
 }
@@ -338,8 +341,8 @@ void WebServerManager::processAutoCapture() {
   bool shouldCapture = false;
 
   if (cfg.capture_mode_live) {
-    // Mode Live: capturer dès que possible (avec petit délai 100ms)
-    if (now - lastAutoCaptureTime > 100) shouldCapture = true;
+    // Mode Live: capturer avec delai minimum 1s
+    if (now - lastAutoCaptureTime > 1000) shouldCapture = true;
   } else {
     // Mode Interval
     if (now - lastAutoCaptureTime > ((unsigned long)cfg.interval_seconds * 1000)) shouldCapture = true;
@@ -398,6 +401,16 @@ void handleApiScanWiFi() {
   server.send(200, "application/json", "{\"networks\":" + networks + "}");
 }
 
+// ========== API: LOGS ==========
+void handleApiLogs() {
+  server.send(200, "text/html", Logger::getLogsHTML());
+}
+
+void handleApiClearLogs() {
+  Logger::clear();
+  server.send(200, "text/plain", "Cleared");
+}
+
 // ========== HANDLER: REBOOT ==========
 void handleReboot() {
   server.send(200, "text/html",
@@ -410,9 +423,46 @@ void handleReboot() {
   ESP.restart();
 }
 
+// ========== HANDLER: UPDATE ==========
+void handleUpdate() {
+  server.send(200, "text/html", 
+    "<html><body style='background:#0a0e27;color:#fff;font-family:sans-serif;text-align:center;padding:50px;'>"
+    "<h1>" + String(Update.hasError() ? "❌ Échec Mise à jour" : "✅ Mise à jour réussie") + "</h1>"
+    "<p>" + String(Update.hasError() ? "Erreur lors de la mise à jour." : "Redémarrage en cours...") + "</p>"
+    "<script>setTimeout(function(){location.href='/';},5000);</script>"
+    "</body></html>");
+  
+  if (!Update.hasError()) {
+    delay(500);
+    ESP.restart();
+  }
+}
+
+void handleUpdateUpload() {
+  HTTPUpload& upload = server.upload();
+  if (upload.status == UPLOAD_FILE_START) {
+    Logger::printf("Update: %s", upload.filename.c_str());
+    // Arrêter la caméra et le WiFi manager si nécessaire pour libérer de la RAM ?
+    // En général sur ESP32 Wrover ça passe
+    if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+      Logger::log("Update begin failed");
+    }
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+      Logger::log("Update write failed");
+    }
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (Update.end(true)) {
+      Logger::printf("Update OK: %u bytes", upload.totalSize);
+    } else {
+      Logger::log("Update end failed");
+    }
+  }
+}
+
 // ========== INIT ==========
 void WebServerManager::init() {
-  Serial.println("🌐 Démarrage du serveur web...");
+  Logger::log("Web server starting...");
 
   server.on("/", handleRoot);
   server.on("/capture", handleCapture);
@@ -430,10 +480,15 @@ void WebServerManager::init() {
   server.on("/api/set_interval", handleApiSetInterval);
   server.on("/api/refresh_models", handleApiRefreshModels);
   server.on("/api/scan_wifi", handleApiScanWiFi);
+  server.on("/api/logs", handleApiLogs);
+  server.on("/api/clear_logs", handleApiClearLogs);
   server.on("/reboot", handleReboot);
+  
+  // OTA Update
+  server.on("/update", HTTP_POST, handleUpdate, handleUpdateUpload);
 
   server.begin();
-  Serial.println("✓ Serveur web démarré");
+  Logger::log("Web server ready");
 }
 
 void WebServerManager::handle() {

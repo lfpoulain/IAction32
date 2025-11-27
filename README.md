@@ -1,36 +1,42 @@
-# IAction32 v2.4
+# IAction32 v2.5
 
-Système de vision IA multi-provider pour ESP32-CAM avec **MQTT natif** et intégration **Home Assistant automatique**.
+Systeme de vision IA multi-provider pour ESP32-CAM avec **MQTT natif** et integration **Home Assistant automatique**.
 
 ---
 
-## 🚀 Fonctionnalités
+## 🚀 Fonctionnalites
 
-### ⚡ Optimisation Batch (v2.4)
-- **Une seule requête IA** pour toutes les questions (au lieu d'une par question)
-- Réduction drastique du temps de traitement et des coûts API
-- Réponse JSON structurée parsée automatiquement
+### ⚡ Optimisations v2.5
+- **Code unifie** : Les 3 providers (OpenAI, LM Studio, Ollama) utilisent la meme API
+- **Buffer circulaire fixe** pour les logs (6KB max, pas de fuite memoire)
+- **CSS/JS minifie** pour une interface plus rapide
+- **Logs centralises** : Tout passe par le Logger (visible dans l'interface web)
+- **Validation JPEG** : Verification du header avant envoi a l'IA
+- **Upload firmware** avec barre de progression
 
 ### 📡 MQTT + Home Assistant
 - **Auto-Discovery** : Les capteurs apparaissent automatiquement dans Home Assistant
 - **MQTT natif** : Communication temps réel via protocole standard IoT
 - **État persistant** : Messages retained pour conserver les valeurs
-- **Availability tracking** : Home Assistant sait quand l'ESP32-CAM est en ligne/hors ligne
+- **Availability tracking** : Home Assistant sait quand IAction32 est en ligne/hors ligne
 - **Contrôle bidirectionnel** : Switch MQTT pour activer/désactiver la capture à distance
 - **Republication automatique** : Discovery republié toutes les 5 minutes
 - **Pas de configuration manuelle** : Tout est automatique !
 
-### 🤖 Multi-Provider IA
-- **LM Studio** : Serveur local pour modèles vision (Qwen, LLaVA, etc.)
-- **Ollama** : Serveur local alternatif
+### 🤖 Multi-Provider IA (API unifiee)
+- **LM Studio** : Serveur local pour modeles vision (Qwen-VL, LLaVA, etc.)
+- **Ollama** : Serveur local avec API compatible OpenAI (`/v1/chat/completions`)
 - **OpenAI** : API cloud (gpt-4.1-nano, gpt-4.1-mini, gpt-4.1)
 
+> **Note v2.5** : Tous les providers utilisent maintenant le meme format de requete (OpenAI-compatible), ce qui simplifie le code et ameliore la compatibilite.
+
 ### 🎨 Interface Web Moderne
-- Navigation par onglets (Dashboard, Configuration, Questions, Caméra)
-- **Boutons toggle** intuitifs (fini les menus déroulants !)
-- Design moderne avec dégradés et animations
+- Navigation par onglets (Dashboard, Configuration, Questions, Camera, **Logs**)
+- **Boutons toggle** intuitifs (fini les menus deroulants !)
+- Design moderne avec degrades et animations
 - Responsive (mobile-friendly)
 - Refresh automatique des statistiques
+- **Page Logs** : Visualisation en temps reel des logs systeme
 
 ### ✨ Fonctionnalités Avancées
 - ✅ Détection automatique des modèles IA disponibles
@@ -54,13 +60,14 @@ IAction32/
 ├── IAction32.ino              # Fichier principal (setup/loop)
 ├── config.h                    # Configuration et structures
 ├── globals.cpp                 # Variables globales
+├── logger.h/cpp                # Systeme de logs (buffer circulaire)
 ├── storage.h/cpp               # Gestion Preferences (EEPROM)
-├── camera_setup.h/cpp          # Gestion caméra
+├── camera_setup.h/cpp          # Gestion camera + validation JPEG
 ├── wifi_manager.h/cpp          # Gestion WiFi
 ├── mqtt_manager.h/cpp          # Gestion MQTT + Auto-Discovery
-├── ai_provider.h/cpp           # Providers IA (LM Studio, Ollama, OpenAI)
+├── ai_provider.h/cpp           # Providers IA (API unifiee OpenAI-compatible)
 ├── web_server.h/cpp            # Serveur web et handlers HTTP
-├── web_html.h                  # Templates HTML/CSS/JS
+├── web_html.h                  # Templates HTML/CSS/JS (minifie)
 ├── web_pages.h/cpp             # Construction des pages
 └── README.md                   # Documentation
 ```
@@ -124,7 +131,7 @@ Ou configurez directement via l'interface web après le premier démarrage.
 ### Connexion Initiale
 
 1. Allumez l'ESP32-CAM (alimentation 5V 2A minimum)
-2. Connectez-vous au WiFi : **ESP32-CAM-Config** (mot de passe : `12345678`)
+2. Connectez-vous au WiFi : **IAction32-Config** (mot de passe : `12345678`)
 3. Accédez à : `http://192.168.4.1`
 4. Configurez votre réseau WiFi principal dans l'onglet **Configuration**
 5. Sauvegardez et redémarrez
@@ -163,8 +170,14 @@ Cliquez sur **"Rafraîchir les modèles"** pour auto-détecter les modèles disp
 #### Option 2 : Ollama (Local)
 ```
 Serveur : http://192.168.1.100:11434
-Modèle : llava:latest (ou autre)
+Modele : llava, qwen2.5vl:7b, bakllava, etc.
 ```
+
+> **Important Ollama** : 
+> - Utilisez un modele **vision** (llava, qwen2.5vl, bakllava, moondream)
+> - Les modeles texte (llama, mistral) ne supportent pas les images
+> - Pre-chargez le modele avant utilisation : `ollama run llava "hello"`
+> - Timeout: 3 minutes (les modeles vision locaux sont lents)
 
 #### Option 3 : OpenAI (Cloud)
 ```
@@ -476,7 +489,7 @@ Capture à intervalles réguliers configurables :
 
 ### WiFi ne se connecte pas
 - Vérifiez le SSID et le mot de passe dans `config.h`
-- Utilisez le mode AP : `ESP32-CAM-Config` / `12345678`
+- Utilisez le mode AP : `IAction32-Config` / `12345678`
 - Vérifiez que votre WiFi est en 2.4GHz (pas 5GHz)
 
 ### MQTT ne se connecte pas
@@ -626,13 +639,19 @@ iaction32/iaction32_XXXXXX/car_count 3
 ## 📝 Notes Techniques
 
 ### Limitations
-- **Max questions** : 10 questions simultanées
-- **PSRAM requis** : Pour résolution HD
+- **Max questions** : 10 questions simultanees
+- **PSRAM requis** : Pour resolution HD
 - **WiFi** : 2.4GHz uniquement (pas 5GHz)
 - **MQTT Buffer** : 2048 bytes (suffisant pour la plupart des cas)
+- **Log Buffer** : 50 lignes x 120 caracteres (buffer circulaire fixe, 6KB)
+
+### Timeout HTTP
+- **Tous les providers** : 30 secondes
 
 ### Versions
-- **v2.3** : Switch MQTT bidirectionnel, Capture autonome server-side, Interface optimisée
+- **v2.5** : API unifiee (tous providers OpenAI-compatible), Logger centralise, CSS/JS minifie, Page Logs, Upload firmware avec progression, Validation JPEG, Optimisations memoire
+- **v2.4** : Batch AI (une requete pour toutes les questions)
+- **v2.3** : Switch MQTT bidirectionnel, Capture autonome server-side, Interface optimisee
 - **v2.2** : Mode Intervalle, Interface boutons toggle, Instructions auto, Timestamp lisible
 - **v2.1** : MQTT natif + Auto-Discovery Home Assistant
 - **v2.0** : Architecture modulaire + Interface moderne
