@@ -154,12 +154,13 @@ String buildConfigPage() {
   html += "</select>";
   html += "<button type='button' id='refresh-btn-lmstudio' class='btn btn-secondary btn-small' onclick='refreshModels(0)'>Rafraichir</button>";
   html += "</div>";
+  html += "<small style='color:var(--ts);'>Evitez les modeles de raisonnement (o1, o3, qwq) - reponses trop longues</small>";
   html += "</div>";
   html += "</div>";
 
   // Ollama Config
   html += "<div id='ollama-config' style='display:" + String(cfg.provider == PROVIDER_OLLAMA ? "block" : "none") + ";'>";
-  html += "<div class='alert alert-info'>Ollama - Serveur local</div>";
+  html += "<div class='alert alert-info'>Ollama - Serveur local (API compatible OpenAI)</div>";
   html += "<div class='form-group'>";
   html += "<label class='form-label'>Serveur Ollama</label>";
   html += "<input type='text' name='lm_host' id='input-ollama-host' class='form-input' value='" + cfg.lm_host + "' placeholder='http://10.0.0.10:11434'>";
@@ -172,6 +173,7 @@ String buildConfigPage() {
   html += "</select>";
   html += "<button type='button' id='refresh-btn-ollama' class='btn btn-secondary btn-small' onclick='refreshModels(1)'>Rafraichir</button>";
   html += "</div>";
+  html += "<small style='color:var(--ts);'>Utilisez un modele vision (llava, qwen2.5vl). Evitez les modeles de raisonnement (qwq)</small>";
   html += "</div>";
   html += "</div>";
 
